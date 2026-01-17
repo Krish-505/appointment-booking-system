@@ -5,41 +5,44 @@ const API_URL = "http://localhost:3000";
 
 function App() {
   const [user, setUser] = useState(null);
+
   const [loginName, setLoginName] = useState("");
   const [password, setPassword] = useState("");
+  const [loginError, setLoginError] = useState("");
+
   const [appointments, setAppointments] = useState([]);
+  const [editingId, setEditingId] = useState(null);
+  const [confirmUpdate, setConfirmUpdate] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [filter, setFilter] = useState("ALL");
+  const [error, setError] = useState("");
+
   const [form, setForm] = useState({
     personName: "",
     title: "",
     date: "",
     time: ""
   });
-  const [error, setError] = useState("");
-  const [filter, setFilter] = useState("ALL");
-  const [editingId, setEditingId] = useState(null);
-  const [deleteTarget, setDeleteTarget] = useState(null);
 
   const token = localStorage.getItem("token");
 
-  /* ---------------- AUTH HEADER ---------------- */
-  function authHeaders() {
-    return {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`
-    };
-  }
-  /* ---------------- FETCH APPOINTMENTS ---------------- */
+  const authHeaders = () => ({
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${token}`
+  });
+
+  /* ---------------- FETCH ---------------- */
   async function fetchAppointments() {
     const res = await fetch(`${API_URL}/appointments`, {
       headers: authHeaders()
     });
 
     const data = await res.json();
-    if (!res.ok) {
+     if (!res.ok) {
       setError(data.error || "Failed to fetch appointments");
       return;
     }
-    // Split datetime into date + time (UI compatibility)
+
     const formatted = data.map(a => {
       const dt = new Date(a.appointment_datetime);
       return {
@@ -52,7 +55,6 @@ function App() {
     setAppointments(formatted);
   }
 
-  /* ---------------- AUTO REFRESH ---------------- */
   useEffect(() => {
     if (!user) return;
 
@@ -65,16 +67,20 @@ function App() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
-  /* ---------------- FORM HANDLERS ---------------- */
+  /* ---------------- FORM ---------------- */
   function handleChange(e) {
     setForm({ ...form, [e.target.name]: e.target.value });
   }
 
- //Submit
-  async function handleSubmit(e) {
-    e.preventDefault();
-    setError("");
+  function hasConflict() {
+    return appointments.some(a =>
+      a.date === form.date &&
+      a.time === form.time &&
+      a.id !== editingId
+    );
+  }
 
+  async function submitAppointment() {
     const url = editingId
       ? `${API_URL}/appointments/${editingId}`
       : `${API_URL}/appointments`;
@@ -88,7 +94,6 @@ function App() {
     });
 
     const data = await res.json();
-
     if (!res.ok) {
       setError(data.error);
       return;
@@ -97,80 +102,74 @@ function App() {
     fetchAppointments();
     setForm({ personName: "", title: "", date: "", time: "" });
     setEditingId(null);
+    setConfirmUpdate(false);
   }
 
- //Delete
-  async function handleDelete(id) {
+  async function handleSubmit(e) {
+    e.preventDefault();
     setError("");
 
-    const res = await fetch(`${API_URL}/appointments/${Number(id)}`, {
-      method: "DELETE",
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
-    });
-
-    const data = await res.json();
-
-    if (!res.ok) {
-      setError(data.error || "Failed to delete appointment");
+    if (!form.personName || !form.title || !form.date || !form.time) {
+      setError("All fields are required");
       return;
     }
+
+    if (hasConflict()) {
+      setError("This time slot is already booked");
+      return;
+    }
+
+    if (editingId) {
+      setConfirmUpdate(true);
+    } else {
+      submitAppointment();
+    }
+  }
+
+  async function handleDelete(id) {
+    await fetch(`${API_URL}/appointments/${id}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` }
+    });
 
     setAppointments(prev => prev.filter(a => a.id !== id));
   }
 
-
-
-  function startEdit(appt) {
-    setEditingId(appt.id);
+  function startEdit(a) {
+    setEditingId(a.id);
     setForm({
-      personName: appt.personName,
-      title: appt.title,
-      date: appt.date,
-      time: appt.time
+      personName: a.personName,
+      title: a.title,
+      date: a.date,
+      time: a.time
     });
   }
-
-  /* ---------------- FILTER ---------------- */
-  const filteredAppointments = [...appointments]
-  .sort(
-    (a, b) =>
-      new Date(b.appointment_datetime) -
-      new Date(a.appointment_datetime)
-  )
-  .filter(a => {
-    if (filter === "ACTIVE") return a.status === "ACTIVE";
-    if (filter === "EXPIRED") return a.status === "EXPIRED";
-    return true;
-  });
 
 
   /* ---------------- LOGIN ---------------- */
   async function handleLogin(e) {
     e.preventDefault();
-    setError("");
+    setLoginError("");
+
+    if (!loginName || !password) {
+      setLoginError("Username and password are required");
+      return;
+    }
 
     const res = await fetch(`${API_URL}/auth/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        username: loginName,
-        password
-      })
+      body: JSON.stringify({ username: loginName, password })
     });
 
     const data = await res.json();
-
     if (!res.ok) {
-      setError(data.error);
+      setLoginError(data.error || "Invalid credentials");
       return;
     }
 
     localStorage.setItem("token", data.token);
     setUser(data.user);
-    setLoginName("");
-    setPassword("");
   }
 
   function handleLogout() {
@@ -179,12 +178,37 @@ function App() {
     setAppointments([]);
   }
 
+  /* ---------------- DATE & TIME ---------------- */
+  const dateOptions = Array.from({ length: 30 }, (_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() + i);
+    return d.toISOString().split("T")[0];
+  });
+
+  const timeOptions = [];
+  for (let h = 9; h <= 20; h++) {
+    timeOptions.push(`${String(h).padStart(2, "0")}:00`);
+    timeOptions.push(`${String(h).padStart(2, "0")}:30`);
+  }
+
+  /* ---------------- SORT ---------------- */
+  const filteredAppointments = [...appointments]
+    .sort((a, b) => b.id - a.id)
+    .filter(a => {
+      if (filter === "ACTIVE") return a.status === "ACTIVE";
+      if (filter === "EXPIRED") return a.status === "EXPIRED";
+      return true;
+    });
+
   /* ---------------- LOGIN UI ---------------- */
   if (!user) {
-    return (
-      <div style={{ padding: 20 }}>
-        <h2>Login</h2>
-        <form onSubmit={handleLogin}>
+  return (
+    <div className="login-page">
+      <div className="login-card">
+        <h1 className="login-title">Appointment Booking</h1>
+        <p className="login-subtitle">Secure login</p>
+
+        <form onSubmit={handleLogin} className="login-form">
           <input
             placeholder="Username"
             value={loginName}
@@ -196,24 +220,24 @@ function App() {
             value={password}
             onChange={e => setPassword(e.target.value)}
           />
-          <br /><br />
+
           <button type="submit">Login</button>
         </form>
-        {error && <p style={{ color: "red" }}>{error}</p>}
+
+        {loginError && <p className="login-error">{loginError}</p>}
       </div>
-    );
-  }
+    </div>
+  );
+}
+
 
   /* ---------------- MAIN UI ---------------- */
   return (
     <div className="page">
-      <div className="header">
-        <div>
-          <h1>Appointment Booking</h1>
-          <p className="logged">Logged in as <b>{user.username}</b></p>
-        </div>
+      <header className="header">
+        <h1>Appointment Booking</h1>
         <button onClick={handleLogout}>Logout</button>
-      </div>
+      </header>
 
       <div className="grid">
         <div className="card">
@@ -221,8 +245,16 @@ function App() {
 
           <input name="personName" placeholder="Person Name" value={form.personName} onChange={handleChange} />
           <input name="title" placeholder="Title" value={form.title} onChange={handleChange} />
-          <input type="date" name="date" value={form.date} onChange={handleChange} />
-          <input type="time" name="time" value={form.time} onChange={handleChange} />
+
+          <select name="date" value={form.date} onChange={handleChange}>
+            <option value="">Select Date</option>
+            {dateOptions.map(d => <option key={d}>{d}</option>)}
+          </select>
+
+          <select name="time" value={form.time} onChange={handleChange}>
+            <option value="">Select Time</option>
+            {timeOptions.map(t => <option key={t}>{t}</option>)}
+          </select>
 
           <button onClick={handleSubmit}>
             {editingId ? "Update" : "Add"}
@@ -232,43 +264,61 @@ function App() {
         </div>
 
         <div className="card">
-          <h2>Appointments</h2>
-
           <div className="filters">
             {["ALL", "ACTIVE", "EXPIRED"].map(f => (
-              <button key={f} onClick={() => setFilter(f)}>
+              <button
+                key={f}
+                className={filter === f ? "active" : ""}
+                onClick={() => setFilter(f)}
+              >
                 {f}
               </button>
             ))}
           </div>
 
-          <div className="list">
-            {filteredAppointments.length === 0 ? (
-              <p>No appointments</p>
-            ) : (
-              filteredAppointments.map(appt => (
-                <div key={appt.id} className="appointment">
-                  <div>
-                    <h3>{appt.personName} – {appt.title}</h3>
-                    <p>{appt.date} {appt.time} · {appt.status}</p>
-                  </div>
-                  <div>
-                    <button onClick={() => startEdit(appt)}>Edit</button>
-                    <button onClick={() => setDeleteTarget(appt)}>Delete</button>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
+          {filteredAppointments.map(a => (
+            <div key={a.id} className="appointment">
+              <div>
+                <h3>{a.personName} – {a.title}</h3>
+                <p>{a.date} {a.time} <span className={`badge ${a.status.toLowerCase()}`}>{a.status}</span></p>
+              </div>
+              <div>
+                <button
+                  disabled={a.status === "EXPIRED"}
+                  className={`btn ${a.status === "EXPIRED" ? "btn-disabled" : ""}`}
+                  onClick={() => a.status !== "EXPIRED" && startEdit(a)}
+                >
+                  Edit
+                </button>
+                
+
+                <button onClick={() => setDeleteTarget(a)}>Delete</button>
+                
+              </div>
+            </div>
+          ))}
         </div>
       </div>
+
+      {confirmUpdate && (
+        <div className="modal-backdrop">
+          <div className="modal">
+            <p>Confirm update?</p>
+            <button className="btn btn-cancel" onClick={() => setConfirmUpdate(false)}>
+              Cancel
+            </button>
+
+            <button className="danger" onClick={submitAppointment}>Update</button>
+          </div>
+        </div>
+      )}
 
       {deleteTarget && (
         <div className="modal-backdrop">
           <div className="modal">
-            <p>Delete {deleteTarget.title}?</p>
-            <button onClick={() => setDeleteTarget(null)}>Cancel</button>
-            <button onClick={() => {
+            <p>Delete <b>{deleteTarget.title}</b>?</p>
+            <button className="btn btn-cancel" onClick={() => setDeleteTarget(null)}>Cancel</button>
+            <button className="danger" onClick={() => {
               handleDelete(deleteTarget.id);
               setDeleteTarget(null);
             }}>Delete</button>
