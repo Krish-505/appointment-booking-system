@@ -1,0 +1,234 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  background: #f5f7fb;
+  color: #111;
+}
+
+.page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 32px;
+}
+
+/* Header */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.header h1 {
+  font-size: 36px;
+  margin: 0;
+}
+
+.subtitle {
+  margin-top: 4px;
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.logged {
+  margin-top: 6px;
+  font-size: 14px;
+}
+
+.logout-btn {
+  padding: 8px 16px;
+  border-radius: 999px;
+  border: none;
+  background: #111;
+  color: white;
+  font-size: 14px;
+}
+
+
+/* Grid */
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr;
+  gap: 24px;
+}
+
+/* Card */
+.card {
+  background: #fff;
+  padding: 24px;
+  border-radius: 14px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.06);
+}
+
+.card h2 {
+  margin-top: 0;
+}
+
+/* Inputs */
+input {
+  width: 100%;
+  padding: 12px;
+  margin-bottom: 12px;
+  border-radius: 10px;
+  border: 1px solid #ddd;
+  font-size: 14px;
+}
+
+input:focus {
+  outline: none;
+  border-color: #2563eb;
+}
+
+/* Buttons */
+.primary-btn {
+  width: 100%;
+  padding: 12px;
+  border-radius: 10px;
+  border: none;
+  background: #2563eb;
+  color: white;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.filter {
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: none;
+  background: #e5e7eb;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.filter.active {
+  background: #2563eb;
+  color: white;
+}
+
+.filters button {
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: none;
+  background: #eee;
+  cursor: pointer;
+  margin: 5px;
+}
+
+/* Appointment list */
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.appointment {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  border-radius: 14px;
+  background: #f9fafb;
+}
+
+.appointment h3 {
+  margin: 0 0 6px;
+  font-size: 16px;
+}
+
+.appointment p {
+  margin: 0;
+  font-size: 13px;
+  color: #6b7280;
+}
+
+
+.actions {
+  display: flex;
+  gap: 8px;
+}
+
+.actions button {
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+}
+
+.actions .danger {
+  background: #ef4444;
+  color: white;
+}
+
+.active {
+  color: #16a34a;
+  font-weight: 600;
+}
+
+.expired {
+  color: #dc2626;
+  font-weight: 600;
+}
+
+.error {
+  color: #dc2626;
+  margin-top: 10px;
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+}
+
+.modal {
+  background: white;
+  padding: 24px;
+  border-radius: 16px;
+  width: 360px;
+  text-align: center;
+}
+
+.modal h3 {
+  margin-bottom: 8px;
+}
+
+.modal p {
+  font-size: 14px;
+  color: #4b5563;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 20px;
+}
+
+.modal-actions .cancel {
+  background: #e5e7eb;
+  padding: 8px 16px;
+  border-radius: 10px;
+  border: none;
+}
+
+.modal-actions .confirm {
+  background: #ef4444;
+  color: white;
+  padding: 8px 16px;
+  border-radius: 10px;
+  border: none;
+}
