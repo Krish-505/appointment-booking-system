@@ -5,7 +5,7 @@ import "dotenv/config";
 const PORT = process.env.PORT || 3000;
 
 app.listen({ port: PORT }, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
+  console.log(`Server running on http://localhost:${PORT}`);
 });
 
 /* AUTO-EXPIRE JOB */
@@ -16,4 +16,4 @@ setInterval(async () => {
   } catch (err) {
     console.error("Expire job failed", err);
   }
-}, 10000); // every 10 seconds (demo)
+}, 10000); // every 10 seconds 

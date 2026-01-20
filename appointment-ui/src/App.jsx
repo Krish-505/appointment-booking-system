@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import "./App.css";
+import Register from "./Register";
+
 
 const API_URL = "http://localhost:3000";
 
@@ -168,6 +170,7 @@ function App() {
       return;
     }
 
+
     localStorage.setItem("token", data.token);
     setUser(data.user);
   }
@@ -223,6 +226,10 @@ function App() {
 
           <button type="submit">Login</button>
         </form>
+        <p className="auth-link">
+          Don’t have an account?{" "}
+          <a href="/register">Create one</a>
+        </p>
 
         {loginError && <p className="login-error">{loginError}</p>}
       </div>

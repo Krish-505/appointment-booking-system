@@ -1,6 +1,7 @@
 import jwt from "jsonwebtoken";
 import {
   createUser,
+  findUserByUsername,
   validateUser
 } from "../services/user.service.js";
 
@@ -12,21 +13,47 @@ const JWT_SECRET = process.env.JWT_SECRET;
 export default async function authRoutes(fastify) {
 
   // REGISTER
-  fastify.post("/register", async (req, reply) => {
-    try {
-      const { username, password } = req.body;
+fastify.post("/auth/register", async (req, reply) => {
+  try {
+    const { username, password } = req.body;
 
-      if (!username || !password) {
-        return reply.code(400).send({ error: "Username and password required" });
-      }
-
-      const user = await createUser(username, password);
-      return reply.code(201).send(user);
-
-    } catch (err) {
-      return reply.code(409).send({ error: "User already exists" });
+    // Basic validation
+    if (!username || !password) {
+      return reply.code(400).send({
+        error: "Username and password are required"
+      });
     }
-  });
+
+    if (password.length < 4) {
+      return reply.code(400).send({
+        error: "Password must be at least 4 characters"
+      });
+    }
+
+    // Check if user already exists
+    const existingUser = await findUserByUsername(username);
+    if (existingUser) {
+      return reply.code(409).send({
+        error: "Username already exists"
+      });
+    }
+
+    // Create user
+    const newUser = await createUser(username, password);
+
+    return reply.code(201).send({
+      message: "User registered successfully",
+      user: newUser
+    });
+
+  } catch (err) {
+    console.error(err);
+    return reply.code(500).send({
+      error: "Server error"
+    });
+  }
+});
+
 
   // LOGIN
   fastify.post("/login", async (req, reply) => {
