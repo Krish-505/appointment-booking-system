@@ -13,7 +13,7 @@ const JWT_SECRET = process.env.JWT_SECRET;
 export default async function authRoutes(fastify) {
 
   // REGISTER
-fastify.post("/auth/register", async (req, reply) => {
+fastify.post("/register", async (req, reply) => {
   try {
     const { username, password } = req.body;
 
